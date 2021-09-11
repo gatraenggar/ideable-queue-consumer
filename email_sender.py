@@ -13,7 +13,7 @@ def send_email(payload_string):
     message["To"] = recipient_email
 
     html_file = open("./templates/email_confirmation.html", 'r', encoding='utf-8')
-    source_code = html_file.read().replace("{{url}}", config("API_URL") + "users/verification/" + auth_token)
+    source_code = html_file.read().replace("{{url}}", config("API_URL") + "auth/email-verification/" + auth_token)
 
     template = MIMEText(source_code, "html")
 
