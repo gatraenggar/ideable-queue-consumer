@@ -11,34 +11,31 @@ def main():
 
     channel.exchange_declare(exchange='service_logs', exchange_type='direct')
     
-    result = channel.queue_declare(queue='', durable=True)
-    queue_name = result.method.queue
-
     services = [
         "email_confirmation",
         "workspace_invitation",
     ]
 
-    for service in services:
+    for service_name in services:
+        channel.queue_declare(queue=service_name, durable=True)
         channel.queue_bind(
             exchange='service_logs',
-            queue=queue_name,
-            routing_key=service,
+            queue=service_name,
+            routing_key=service_name,
         )
 
-    def callback(ch, method, prop, body):
-        print("[service] %r:%r \n" % (method.routing_key, body))
-        print("sending to", body.decode())
-        send_email(body.decode(), method.routing_key)
-        print("done")
-        ch.basic_ack(delivery_tag = method.delivery_tag)
+        def callback(ch, method, prop, body):
+            print("[service] %r to %r" % (method.routing_key, body.decode().split()[0]))
+            send_email(body.decode(), method.routing_key)
+            print("done")
+            ch.basic_ack(delivery_tag = method.delivery_tag)
 
-    channel.basic_qos(prefetch_count=1)
+        channel.basic_qos(prefetch_count=1)
 
-    channel.basic_consume(
-        queue=queue_name,
-        on_message_callback=callback,
-    )
+        channel.basic_consume(
+            queue=service_name,
+            on_message_callback=callback,
+        )
 
     print(' [*] Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()

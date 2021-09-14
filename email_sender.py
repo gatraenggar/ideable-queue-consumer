@@ -17,12 +17,12 @@ def send_email(payload_string, routing_key):
         "email_confirmation": {
             "subject": "Email Verification for Registration",
             "template": "./templates/email_confirmation.html",
-            "uri": "auth/email-verification/" + auth_token,
+            "uri": tokenPayload["uri"] + auth_token,
         },
         "workspace_invitation": {
             "subject": "Workspace Invitation by One of Your Friend",
             "template": "./templates/workspace_invitation.html",
-            "uri": "workspaces/" + str(uuid.UUID(tokenPayload["workspace_uuid"])) + "/members/" + auth_token,
+            "uri": tokenPayload["uri"] + auth_token,
         }
     }
 
