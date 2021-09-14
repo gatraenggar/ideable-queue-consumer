@@ -9,25 +9,34 @@ def main():
 
     channel = connection.channel()
 
-    channel.exchange_declare(exchange='email_confirmation', exchange_type='direct')
-    channel.queue_declare(queue='email_confirmation', durable=True)
+    channel.exchange_declare(exchange='service_logs', exchange_type='direct')
+    
+    result = channel.queue_declare(queue='', durable=True)
+    queue_name = result.method.queue
 
-    channel.queue_bind(
-        exchange='email_confirmation',
-        queue='email_confirmation',
-        routing_key='email_confirmation',
-    )
+    services = [
+        "email_confirmation",
+        "workspace_invitation",
+    ]
+
+    for service in services:
+        channel.queue_bind(
+            exchange='service_logs',
+            queue=queue_name,
+            routing_key=service,
+        )
 
     def callback(ch, method, prop, body):
+        print("[service] %r:%r \n" % (method.routing_key, body))
         print("sending to", body.decode())
-        send_email(body.decode())
+        send_email(body.decode(), method.routing_key)
         print("done")
         ch.basic_ack(delivery_tag = method.delivery_tag)
 
     channel.basic_qos(prefetch_count=1)
 
     channel.basic_consume(
-        queue='email_confirmation',
+        queue=queue_name,
         on_message_callback=callback,
     )
 

@@ -1,19 +1,38 @@
+from main.token_manager import TokenManager
 from decouple import config
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import smtplib, ssl
+import smtplib, ssl, sys, uuid
 
-def send_email(payload_string):
+sys.path.append("..")
+from token_manager import TokenManager
+
+def send_email(payload_string, routing_key):
     recipient_email = payload_string.split()[0]
     auth_token = payload_string.split()[1]
 
+    tokenPayload = TokenManager.verify_random_token(auth_token)
+
+    services = {
+        "email_confirmation": {
+            "subject": "Email Verification for Registration",
+            "template": "./templates/email_confirmation.html",
+            "uri": "auth/email-verification/" + auth_token,
+        },
+        "workspace_invitation": {
+            "subject": "Workspace Invitation by One of Your Friend",
+            "template": "./templates/workspace_invitation.html",
+            "uri": "workspaces/" + str(uuid.UUID(tokenPayload["workspace_uuid"])) + "/members/" + auth_token,
+        }
+    }
+
     message = MIMEMultipart("alternative")
-    message["Subject"] = "Email Verification for Registration"
+    message["Subject"] = services[routing_key]["subject"]
     message["From"] = config("EMAIL_HOST_USER")
     message["To"] = recipient_email
 
-    html_file = open("./templates/email_confirmation.html", 'r', encoding='utf-8')
-    source_code = html_file.read().replace("{{url}}", config("API_URL") + "auth/email-verification/" + auth_token)
+    html_file = open(services[routing_key]["template"], 'r', encoding='utf-8')
+    source_code = html_file.read().replace("{{url}}", config("API_URL") + services[routing_key]["uri"])
 
     template = MIMEText(source_code, "html")
 
