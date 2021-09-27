@@ -1,6 +1,6 @@
 from decouple import config
 from email_sender import send_email
-import os, pika, sys
+import datetime, os, pika, sys
 
 def main():
     connection = pika.BlockingConnection(
@@ -25,7 +25,9 @@ def main():
         )
 
         def callback(ch, method, prop, body):
-            print("[service] %r to %r" % (method.routing_key, body.decode().split()[0]))
+            time_now = datetime.datetime.now().strftime("%X")
+
+            print("[service] %r: %r to %r" % (time_now, method.routing_key, body.decode().split()[0]))
             send_email(body.decode(), method.routing_key)
             print("done")
             ch.basic_ack(delivery_tag = method.delivery_tag)
