@@ -1,29 +1,25 @@
-from main.token_manager import TokenManager
 from decouple import config
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib, ssl, sys
 
 sys.path.append("..")
-from token_manager import TokenManager
 
 def send_email(payload_string, routing_key):
     try:
         recipient_email = payload_string.split()[0]
         auth_token = payload_string.split()[1]
 
-        tokenPayload = TokenManager.verify_random_token(auth_token)
-
         services = {
             "email_confirmation": {
                 "subject": "Email Verification for Registration",
                 "template": "./templates/email_confirmation.html",
-                "uri": tokenPayload["uri"] + auth_token,
+                "uri": "/email-verification/" + auth_token,
             },
             "workspace_invitation": {
                 "subject": "Workspace Invitation by One of Your Friend",
                 "template": "./templates/workspace_invitation.html",
-                "uri": tokenPayload["uri"] + auth_token,
+                "uri": "/workspace-invitation/" + auth_token,
             }
         }
 
@@ -33,7 +29,7 @@ def send_email(payload_string, routing_key):
         message["To"] = recipient_email
 
         html_file = open(services[routing_key]["template"], 'r', encoding='utf-8')
-        source_code = html_file.read().replace("{{url}}", config("API_URL") + services[routing_key]["uri"])
+        source_code = html_file.read().replace("{{url}}", config("CLIENT_URL") + services[routing_key]["uri"])
 
         template = MIMEText(source_code, "html")
 
